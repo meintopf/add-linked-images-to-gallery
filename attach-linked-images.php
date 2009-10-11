@@ -17,7 +17,7 @@
 	function bbq_find_imgs ($post_id) {
 		if (wp_is_post_revision($post_id)) return;
 		
-		$k = 'bbq_flickr';
+		$k = 'externimg';
 		$processed = get_post_custom_values($k, $post_id);
 		
 		$imgs = bbq_get_img_tags ($post_id);
