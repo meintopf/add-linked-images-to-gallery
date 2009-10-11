@@ -10,11 +10,17 @@ Makes local copies of all the linked images in a post, adding them as gallery at
 
 == Description ==
 
-Makes local copies of all the linked images in a post, adding them as gallery attachments on the post itself.
+Extracts a list of IMG tags in the post, and saves copies of those images locally as gallery attachments on the post.
 
-* Examines the source code of a post and looks for <IMG> tags
-* Makes local copies of those linked images
-* Adds those local copies as gallery attachments
+Particularly useful for photobloggers who update using the mail2blog Flickr API.   The plugin will saved the linked image file from Flickr locally.
+
+There are currently no configuration options.  You just activate it and let it do its thing.
+
+= Features I plan to add =
+* User-configurable custom-tag name
+* Ability to restrict operation to only specific hosts (ie, Flickr)
+* Integrate with Flickr API in order to allow always downloading the original image size regardless of which is linked
+
 
 == Installation ==
 
