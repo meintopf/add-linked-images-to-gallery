@@ -3,23 +3,23 @@
 	/*
 	 Plugin Name: Add Linked Images To Gallery
 	 Plugin URI:  http://www.bbqiguana.com/tag/wordpress-plugins/
+	 Version: 0.2
 	 Description: Examines the text of a post and makes local copies of all the images linked though IMG tags, adding them as gallery attachments on the post itself.
 	 Author: Randall Hunt
-	 Version: 0.1
 	 Author URI: http://www.bbqiguana.com/
 	 */
 	
-	
-	//add_action('publish_post', 'bbq_find_imgs');
-	add_action('save_post', 'bbq_find_imgs');
-	
-	
 	function bbq_find_imgs ($post_id) {
+		
 		if (wp_is_post_revision($post_id)) return;
 		
-		$k = 'externimg';
+		$l = get_option('externimg_replacesrc');
+		$k = get_option('externimg_custtagname');
 		$processed = get_post_custom_values($k, $post_id);
 		
+		$replaced = false;
+		$post = get_post($post_id);
+		$content = $post->post_content;
 		$imgs = bbq_get_img_tags ($post_id);
 		
 		for($i=0; $i<count($imgs); $i++) {
@@ -27,29 +27,50 @@
 				
 				$filename = substr(strrchr($imgs[$i], '/'), 1);
 				
-				$file = bbq_loadfile($imgs[$i]); //, array('return_info'=>true));
+				$file = bbq_loadimage($imgs[$i]);
 				
 				$filename = substr(strrchr($imgs[$i], '/'), 1);
-				bbq_savefile($file, $filename, $post_id);
+				$imgpath = bbq_savefile($file, $filename, $post_id);
 				
-				add_post_meta($post_id, $k, $imgs[$i], false);
+				if ($l=='custtag') {
+					add_post_meta($post_id, $k, $imgs[$i], false);
+				} else {
+					$content = str_replace($imgs[$i], $imgpath, $content);
+					$replaced = true;
+				}
 				$processed[] = $imgs[i];
 			}
+		}
+		if ($replaced) {
+			$upd = array();
+			$upd['ID'] = $post_id;
+			$upd['post_content'] = $content;
+			wp_update_post($upd);
 		}
 	}
 	
 	function bbq_get_img_tags ($post_id) {
 		$post = get_post($post_id);
+		$w = get_option('externimg_whichimgs');
+		$s = get_option('siteurl');
 		
 		$result = array();
-		preg_match_all('/<img[^>]+src=[\'"]?([^>\'"]+)/', $post->post_content, $matches);
+		//preg_match_all('/<img[^>]+src=\\\\?[\'"]?([^>\\\"\' ]+)/', $content, $matches);
+		preg_match_all('/<img[^>]+src=[\'"]?([^>\'" ]+)/', $post->post_content, $matches);
 		for ($i=0; $i<count($matches[0]); $i++) {
 			$uri = $matches[1][$i];
 			
-			//only match Flickr images?
-			//if ( preg_match('/^http:\/\/[a-z0-9]+\.static\.flickr\.com\//', $uri) ) {
-			$result[] = $matches[1][$i];
-			//}
+			//only check FQDNs
+			if (preg_match('/^http:\/\//', $uri)) {
+				//make sure it's not external
+				if ($s != substr($uri, 0, strlen($s)) ) {
+					//only match Flickr images?
+					if($w == 'All' || 
+					   ($w == 'Flickr' && preg_match('/^http:\/\/[a-z0-9]+\.static\.flickr\.com\//', $uri)) ) {
+						$result[] = $matches[1][$i];
+					}
+				}
+			}
 		}
 		return $result;
 	}
@@ -60,7 +81,6 @@
 		$uploads = wp_upload_dir($time);
 		$filename = wp_unique_filename( $uploads['path'], $url, $unique_filename_callback );
 		$savepath = $uploads['path'] . "/$filename";
-		
 		
 		if($fp = fopen($savepath, 'w')) {
 			fwrite($fp, $file);
@@ -85,29 +105,13 @@
 		$id = wp_insert_attachment($attachment, $file, $post_id);
 		if ( !is_wp_error($id) ) {
 			wp_update_attachment_metadata( $id, wp_generate_attachment_metadata( $id, $file ) );
-		}
-		return $id;
-		// the content of 'data.txt' is now 123 and not 23!
+		} else return '';
+		return $uploads['url'] . "/$filename";
 	}
 	
 	
 	//modified from code found at http://www.bin-co.com/php/scripts/load/
-	function bbq_loadfile ($url,$options=array()) {
-		
-		$default_options = array(
-								 'method'		=> 'get',
-								 'return_info'	=> false,
-								 'return_body'	=> true,
-								 'cache'		=> false,
-								 'referer'		=> '',
-								 'headers'		=> array(),
-								 'session'		=> false,
-								 'session_close' => false,
-								 );
-		// Sets the default options.
-		foreach($default_options as $opt=>$value) {
-			if(!isset($options[$opt])) $options[$opt] = $value;
-		}
+	function bbq_loadimage ($url) {
 		
 		$url_parts = parse_url($url);
 		$ch = false;
@@ -118,85 +122,28 @@
 		
 		$send_header = array(
 							 'Accept' => 'text/*',
-							 'User-Agent' => 'BinGet/1.00.A (http://www.bin-co.com/php/scripts/load/)'
-							 ) + $options['headers']; // Add custom headers provided by the user.
+							 'User-Agent' => 'Attach-Linked-Images WordPress Plugin (http://www.bbqiguana.com/)'
+							 );
 		
-		if($options['cache']) {
-			$cache_folder = '/tmp/php-load-function/';
-			if(isset($options['cache_folder'])) $cache_folder = $options['cache_folder'];
-			if(!file_exists($cache_folder)) {
-				$old_umask = umask(0); // Or the folder will not get write permission for everybody.
-				mkdir($cache_folder, 0777);
-				umask($old_umask);
-			}
-			
-			$cache_file_name = md5($url) . '.cache';
-			$cache_file = joinPath($cache_folder, $cache_file_name); //Don't change the variable name - used at the end of the function.
-			
-			if(file_exists($cache_file)) { // Cached file exists - return that.
-				$response = file_get_contents($cache_file);
-				
-				//Seperate header and content
-				$separator_position = strpos($response,"\r\n\r\n");
-				$header_text = substr($response,0,$separator_position);
-				$body = substr($response,$separator_position+4);
-				
-				foreach(explode("\n",$header_text) as $line) {
-					$parts = explode(": ",$line);
-					if(count($parts) == 2) $headers[$parts[0]] = chop($parts[1]);
-				}
-				$headers['cached'] = true;
-				
-				if(!$options['return_info']) return $body;
-				else return array('headers' => $headers, 'body' => $body, 'info' => array('cached'=>true));
-			}
-		}
+		
 		
 		///////////////////////////// Curl /////////////////////////////////////
 		//If curl is available, use curl to get the data.
-		if(function_exists("curl_init") 
-		   and (!(isset($options['use']) and $options['use'] == 'fsocketopen'))) { //Don't use curl if it is specifically stated to use fsocketopen in the options
+		if(function_exists("curl_init")) {  //$options['use'] == 'fsocketopen'))) { //Don't use curl if it is specifically stated to use fsocketopen in the options
 			
-			if(isset($options['post_data'])) { //There is an option to specify some data to be posted.
-				$page = $url;
-				$options['method'] = 'post';
-				
-				if(is_array($options['post_data'])) { //The data is in array format.
-					$post_data = array();
-					foreach($options['post_data'] as $key=>$value) {
-						$post_data[] = "$key=" . urlencode($value);
-					}
-					$url_parts['query'] = implode('&', $post_data);
-					
-				} else { //Its a string
-					$url_parts['query'] = $options['post_data'];
-				}
-			} else {
-				if(isset($options['method']) and $options['method'] == 'post') {
-					$page = $url_parts['scheme'] . '://' . $url_parts['host'] . $url_parts['path'];
-				} else {
-					$page = $url;
-				}
-			}
+			$page = $url;
 			
-			if($options['session'] and isset($GLOBALS['_binget_curl_session'])) $ch = $GLOBALS['_binget_curl_session']; //Session is stored in a global variable
-			else $ch = curl_init($url_parts['host']);
+			$ch = curl_init($url_parts['host']);
 			
 			curl_setopt($ch, CURLOPT_URL, $page) or die("Invalid cURL Handle Resouce");
 			curl_setopt($ch, CURLOPT_RETURNTRANSFER, true); //Just return the data - not print the whole thing.
 			curl_setopt($ch, CURLOPT_HEADER, true); //We need the headers
-			curl_setopt($ch, CURLOPT_NOBODY, !($options['return_body'])); //The content - if true, will not download the contents. There is a ! operation - don't remove it.
-			if(isset($options['method']) and $options['method'] == 'post' and isset($url_parts['query'])) {
-				curl_setopt($ch, CURLOPT_POST, true);
-				curl_setopt($ch, CURLOPT_POSTFIELDS, $url_parts['query']);
-			}
+			curl_setopt($ch, CURLOPT_NOBODY, false); //Yes, get the body.
+			
 			//Set the headers our spiders sends
 			curl_setopt($ch, CURLOPT_USERAGENT, $send_header['User-Agent']); //The Name of the UserAgent we will be using ;)
 			$custom_headers = array("Accept: " . $send_header['Accept'] );
-			if(isset($options['modified_since']))
-				array_push($custom_headers,"If-Modified-Since: ".gmdate('D, d M Y H:i:s \G\M\T',strtotime($options['modified_since'])));
 			curl_setopt($ch, CURLOPT_HTTPHEADER, $custom_headers);
-			if($options['referer']) curl_setopt($ch, CURLOPT_REFERER, $options['referer']);
 			
 			curl_setopt($ch, CURLOPT_COOKIEJAR, "/tmp/binget-cookie.txt"); //If ever needed...
 			curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
@@ -211,16 +158,12 @@
 			$response = curl_exec($ch);
 			$info = curl_getinfo($ch); //Some information on the fetch
 			
-			if($options['session'] and !$options['session_close']) $GLOBALS['_binget_curl_session'] = $ch; //Dont close the curl session. We may need it later - save it to a global variable
-			else curl_close($ch);  //If the session option is not set, close the session.
+			curl_close($ch);  //If the session option is not set, close the session.
 			
 			//////////////////////////////////////////// FSockOpen //////////////////////////////
 		} else { //If there is no curl, use fsocketopen - but keep in mind that most advanced features will be lost with this approch.
 			if(isset($url_parts['query'])) {
-				if(isset($options['method']) and $options['method'] == 'post')
-					$page = $url_parts['path'];
-				else
-					$page = $url_parts['path'] . '?' . $url_parts['query'];
+				$page = $url_parts['path'] . '?' . $url_parts['query'];
 			} else {
 				$page = $url_parts['path'];
 			}
@@ -228,30 +171,15 @@
 			if(!isset($url_parts['port'])) $url_parts['port'] = 80;
 			$fp = fsockopen($url_parts['host'], $url_parts['port'], $errno, $errstr, 30);
 			if ($fp) {
-				$out = '';
-				if(isset($options['method']) and $options['method'] == 'post' and isset($url_parts['query'])) {
-					$out .= "POST $page HTTP/1.1\r\n";
-				} else {
-					$out .= "GET $page HTTP/1.0\r\n"; //HTTP/1.0 is much easier to handle than HTTP/1.1
-				}
+				$out = "GET $page HTTP/1.0\r\n"; //HTTP/1.0 is much easier to handle than HTTP/1.1
 				$out .= "Host: $url_parts[host]\r\n";
 				$out .= "Accept: $send_header[Accept]\r\n";
 				$out .= "User-Agent: {$send_header['User-Agent']}\r\n";
-				if(isset($options['modified_since']))
-					$out .= "If-Modified-Since: ".gmdate('D, d M Y H:i:s \G\M\T',strtotime($options['modified_since'])) ."\r\n";
-				
 				$out .= "Connection: Close\r\n";
 				
 				//HTTP Basic Authorization support
 				if(isset($url_parts['user']) and isset($url_parts['pass'])) {
 					$out .= "Authorization: Basic ".base64_encode($url_parts['user'].':'.$url_parts['pass']) . "\r\n";
-				}
-				
-				//If the request is post - pass the data in a special way.
-				if(isset($options['method']) and $options['method'] == 'post' and $url_parts['query']) {
-					$out .= "Content-Type: application/x-www-form-urlencoded\r\n";
-					$out .= 'Content-Length: ' . strlen($url_parts['query']) . "\r\n";
-					$out .= "\r\n" . $url_parts['query'];
 				}
 				$out .= "\r\n";
 				
@@ -280,12 +208,84 @@
 			}
 		}
 		
-		if(isset($cache_file)) { //Should we cache the URL?
-			file_put_contents($cache_file, $response);
-		}
-		
-		if($options['return_info']) return array('headers' => $headers, 'body' => $body, 'info' => $info, 'curl_handle'=>$ch);
+		//if($options['return_info']) return array('body' => $body, 'info' => $info, 'curl_handle'=>$ch);
 		return $body;
 	}
+	
+	function externimg_menu () {
+		if ( function_exists('add_options_page') ) {
+			add_options_page('Linked IMGs to Gallery', 'Linked IMGs', 8, 'externimg', 'externimg_options');
+		}
+	}
+	
+	function externimg_init () {
+		register_setting('externimg', 'externimg_whichimgs');
+		register_setting('externimg', 'externimg_replacesrc');
+		register_setting('externimg', 'externimg_custtagname');
+	}
+	
+	function externimg_install () {
+		//add default options
+		$whichimgs   = get_option('externimg_whichimgs');
+		$replacesrc  = get_option('externimg_replacesrc');
+		$custtagname = get_option('externimg_custtagname');
+		
+		if(!$whichimgs)   update_option('externimg_whichimgs',   'All');
+		if(!$replacesrc)  update_option('externimg_replacesrc',  'replace');
+		if(!$custtagname) update_option('externimg_custtagname', 'externimg');
+	}
+	
+	function externimg_options () {
+		if ( ($_POST['action']=='update') ) {
+			//check_admin_referer('externimg_update-action');
+			
+			update_option('externimg_whichimgs',   $_POST['externimg_whichimgs'] );
+			update_option('externimg_replacesrc',  $_POST['externimg_replacesrc'] );
+			update_option('externimg_custtagname', $_POST['externimg_custtagname'] );
+		}
+		//	$optionarray_def = get_option('plugin_externimg');
+		echo '<div class="wrap">';
+		echo '<h2>Linked IMGs to Gallery Attachments</h2>';
+		//echo '<div id="message" class="updated fade" style="background-color:rgb(255,251,204);"><p>placeholder</p></div>';
+		echo '<big>Options</big>';
+		echo '<form name="externimg-options" method="post" action="">';
+		settings_fields('externimg');
+		echo '<table class="form-table"><tbody>';
+		echo '<tr valign="top"><th scope="row"><strong>Which external IMG links to process:</strong></th>';
+		echo '<td><label for="myradio1"><input id="myradio1" type="radio" name="externimg_whichimgs" value="All" ' . (get_option('externimg_whichimgs')!='Flickr'?'checked="checked"':'') . '/> All images</label><br/>';
+		echo '<label for="myradio2"><input id="myradio2" type="radio" name="externimg_whichimgs" value="Flickr" ' . (get_option('externimg_whichimgs')=='Flickr'?'checked="checked"':'') . ' /> Only Flickr images</label><br/>';
+		echo '<p>By default, all external images are processed.  This can be set to only apply to Flickr.</p>';
+		echo '</td></tr>';
+		echo '<tr valign="top"><th scope="row"><strong>What to do with the images:</th>';
+		echo '<td><label for="myradio3"><input id="myradio3" type="radio" name="externimg_replacesrc" value="replace" ' . (get_option('externimg_replacesrc')!='custtag'?'checked="checked"':'') . ' /> Replace SRC attribute with local copy</label><br/>';
+		echo '<label for="myradio4"><input id="myradio4" type="radio" name="externimg_replacesrc" value="custtag" ' . (get_option('externimg_replacesrc')=='custtag'?'checked="checked"':'') . ' /> Use custom tag:</label> ';
+		echo '<input type="text" size="20" name="externimg_custtagname" value="' . get_option('externimg_custtagname') . '" /><br/>';
+		echo '<p>Replacing the SRC attribute will convert the external IMG link to a local link, pointed at the local copy downloaded by this plugin. If the SRC attribute is not replaced, the plugin needs to mark the IMG as having been processed somehow, so this is done by tracking processed images in custom_tag values.  You can change the name of the custom tag.</p></td></tr>';
+		//	echo '<tr valign="top"><th scope="row">This site name:</th><td>' . get_option('siteurl') . '</td></tr>';
+		echo '</tbody></table>';
+		echo '<div class="submit">';
+		//echo '<input type="hidden" name="externimg_update" value="action" />';
+		echo '<input type="submit" name="submit" class="button-primary" value="';
+		_e('Save Changes');
+		echo '" />';
+		echo '</div>';
+		echo '</form>';
+		echo '<div class="wrap">';
+		echo '<big>Donate</big>';
+		echo '<p>If you like this plugin consider donating a small amount to the author using PayPal to support further plugin development.</p>';
+		echo '<div align="center"><form name="_xclick" action="https://www.paypal.com/us/cgi-bin/webscr" method="post"><input type="hidden" name="cmd" value="_xclick"><input type="hidden" name="business" value="bbqiguana@gmail.com"><input type="hidden" name="item_name" value="Donations for WP-Externimage Plugin"><input type="hidden" name="currency_code" value="USD"><input type="image" src="http://www.paypal.com/en_US/i/btn/btn_donate_LG.gif" border="0" name="submit" alt="Make payments with PayPal - it\'s fast, free and secure!"></form></div>';
+		echo '<p>If you think donating money is somehow impersonal you could also choose items from my <a href="http://www.amazon.com/registry/wishlist/18LMHOMRM49P8/ref=cm_wl_act_vv">Amazon.com wishlist</a>.</p>';
+		echo '</div>';
+		echo '';
+		echo '</div>';
+	}
+	
+	if ( is_admin() ) { // admin actions
+		add_action('admin_menu', 'externimg_menu');
+		add_action('admin_init', 'externimg_init');
+	}
+	register_activation_hook(__FILE__, 'externimg_install');
+	
+	add_action('save_post', 'bbq_find_imgs');
 	
 	?>
