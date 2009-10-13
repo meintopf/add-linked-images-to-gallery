@@ -3,13 +3,13 @@
 	/*
 	 Plugin Name: Add Linked Images To Gallery
 	 Plugin URI:  http://www.bbqiguana.com/tag/wordpress-plugins/
-	 Version: 0.2
+	 Version: 0.3
 	 Description: Examines the text of a post and makes local copies of all the images linked though IMG tags, adding them as gallery attachments on the post itself.
 	 Author: Randall Hunt
 	 Author URI: http://www.bbqiguana.com/
 	 */
 	
-	function bbq_find_imgs ($post_id) {
+	function externimg_find_imgs ($post_id) {
 		
 		if (wp_is_post_revision($post_id)) return;
 		
@@ -20,25 +20,27 @@
 		$replaced = false;
 		$post = get_post($post_id);
 		$content = $post->post_content;
-		$imgs = bbq_get_img_tags ($post_id);
+		$imgs = externimg_get_img_tags($post_id);
 		
 		for($i=0; $i<count($imgs); $i++) {
 			if (!$processed || !in_array($imgs[$i], $processed)) {
 				
-				$filename = substr(strrchr($imgs[$i], '/'), 1);
-				
-				$file = bbq_loadimage($imgs[$i]);
-				
-				$filename = substr(strrchr($imgs[$i], '/'), 1);
-				$imgpath = bbq_savefile($file, $filename, $post_id);
-				
-				if ($l=='custtag') {
-					add_post_meta($post_id, $k, $imgs[$i], false);
-				} else {
-					$content = str_replace($imgs[$i], $imgpath, $content);
-					$replaced = true;
+				$parseurl = parse_url($imgs[$i]);
+				$pathname = $parseurl['path'];
+				$filename = substr(strrchr($pathname, '/'), 1);
+				if (preg_match ('/(\.php|\.aspx?)$/', $filename) ) $filename .= '.jpg';
+				if ($file = externimg_loadimage($imgs[$i])) {
+					//$filename = substr(strrchr($imgs[$i], '/'), 1);
+					$imgpath = externimg_savefile($file, $filename, $post_id);
+					if ($l=='custtag') {
+						add_post_meta($post_id, $k, $imgs[$i], false);
+					} else {
+						//$content = str_replace($imgs[$i], $imgpath, $content);
+						$content = preg_replace('/(<img[^>]* src=[\'"]?)([^>\'" ]+)/', '$1'.$imgpath, $content);
+						$replaced = true;
+					}
+					$processed[] = $imgs[i];
 				}
-				$processed[] = $imgs[i];
 			}
 		}
 		if ($replaced) {
@@ -49,14 +51,14 @@
 		}
 	}
 	
-	function bbq_get_img_tags ($post_id) {
+	function externimg_get_img_tags ($post_id) {
 		$post = get_post($post_id);
 		$w = get_option('externimg_whichimgs');
 		$s = get_option('siteurl');
 		
 		$result = array();
 		//preg_match_all('/<img[^>]+src=\\\\?[\'"]?([^>\\\"\' ]+)/', $content, $matches);
-		preg_match_all('/<img[^>]+src=[\'"]?([^>\'" ]+)/', $post->post_content, $matches);
+		preg_match_all('/<img[^>]* src=[\'"]?([^>\'" ]+)/', $post->post_content, $matches);
 		for ($i=0; $i<count($matches[0]); $i++) {
 			$uri = $matches[1][$i];
 			
@@ -75,7 +77,7 @@
 		return $result;
 	}
 	
-	function bbq_savefile ($file, $url, $post_id) {
+	function externimg_savefile ($file, $url, $post_id) {
 		$time = null;
 		
 		$uploads = wp_upload_dir($time);
@@ -111,7 +113,7 @@
 	
 	
 	//modified from code found at http://www.bin-co.com/php/scripts/load/
-	function bbq_loadimage ($url) {
+	function externimg_loadimage ($url) {
 		
 		$url_parts = parse_url($url);
 		$ch = false;
@@ -157,7 +159,7 @@
 			
 			$response = curl_exec($ch);
 			$info = curl_getinfo($ch); //Some information on the fetch
-			
+			if('http://l.yimg.com/g/images/photo_unavailable.gif'==$info['url']) $body = '';
 			curl_close($ch);  //If the session option is not set, close the session.
 			
 			//////////////////////////////////////////// FSockOpen //////////////////////////////
@@ -194,8 +196,8 @@
 		//Get the headers in an associative array
 		$headers = array();
 		
-		if($info['http_code'] == 404) {
-			$body = "";
+		if($info['http_code'] == 404 || $info['http_code'] == 400) {
+			$body = '';
 			$headers['Status'] = 404;
 		} else {
 			//Seperate header and content
@@ -219,6 +221,9 @@
 	}
 	
 	function externimg_init () {
+		//$plugin_dir = basename(dirname(__FILE__));
+		//load_plugin_textdomain('externimg', 'wp-content/plugins/'.$plugin_dir, 'externimg');
+		
 		register_setting('externimg', 'externimg_whichimgs');
 		register_setting('externimg', 'externimg_replacesrc');
 		register_setting('externimg', 'externimg_custtagname');
@@ -231,22 +236,20 @@
 		$custtagname = get_option('externimg_custtagname');
 		
 		if(!$whichimgs)   update_option('externimg_whichimgs',   'All');
-		if(!$replacesrc)  update_option('externimg_replacesrc',  'replace');
+		if(!$replacesrc)  update_option('externimg_replacesrc',  'custtag');
 		if(!$custtagname) update_option('externimg_custtagname', 'externimg');
 	}
 	
 	function externimg_options () {
+		echo '<div class="wrap">';
+		echo '<h2>Linked IMGs to Gallery Attachments</h2>';
 		if ( ($_POST['action']=='update') ) {
 			//check_admin_referer('externimg_update-action');
-			
 			update_option('externimg_whichimgs',   $_POST['externimg_whichimgs'] );
 			update_option('externimg_replacesrc',  $_POST['externimg_replacesrc'] );
 			update_option('externimg_custtagname', $_POST['externimg_custtagname'] );
+			echo '<div id="message" class="updated fade" style="background-color:rgb(255,251,204);"><p>Settings updated.</p></div>';
 		}
-		//	$optionarray_def = get_option('plugin_externimg');
-		echo '<div class="wrap">';
-		echo '<h2>Linked IMGs to Gallery Attachments</h2>';
-		//echo '<div id="message" class="updated fade" style="background-color:rgb(255,251,204);"><p>placeholder</p></div>';
 		echo '<big>Options</big>';
 		echo '<form name="externimg-options" method="post" action="">';
 		settings_fields('externimg');
@@ -265,9 +268,7 @@
 		echo '</tbody></table>';
 		echo '<div class="submit">';
 		//echo '<input type="hidden" name="externimg_update" value="action" />';
-		echo '<input type="submit" name="submit" class="button-primary" value="';
-		_e('Save Changes');
-		echo '" />';
+		echo '<input type="submit" name="submit" class="button-primary" value="' . __('Save Changes') . '" />';
 		echo '</div>';
 		echo '</form>';
 		echo '<div class="wrap">';
@@ -286,6 +287,6 @@
 	}
 	register_activation_hook(__FILE__, 'externimg_install');
 	
-	add_action('save_post', 'bbq_find_imgs');
+	add_action('save_post', 'externimg_find_imgs');
 	
-	?>
+?>

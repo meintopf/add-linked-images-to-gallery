@@ -16,9 +16,10 @@ Particularly useful for photobloggers who update using the mail2blog Flickr API.
 
 There are currently no configuration options.  You just activate it and let it do its thing.
 
-= Features I plan to add =
+= Planned features: =
+* Add internationalization support
 * Integrate with Flickr API in order to allow always downloading the original image size regardless of which is linked
-
+* Additional options to allow running the plugin only for specific users or categories
 
 == Installation ==
 
@@ -35,6 +36,14 @@ none
 none
 
 == Changelog ==
+
+= 0.3 =
+* Improved pattern matching for images
+* 404 errors not processed
+* Flickr "image-not-found" jpg not processed
+* Improved local file naming
+* Replace feature was replacing URL in entire text. Now only replaces in IMG src.
+* Added feedback when options are saved.
 
 = 0.2 =
 * Added options panel
