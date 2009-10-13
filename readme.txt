@@ -1,8 +1,8 @@
 === Add Linked Images To Gallery ===
 Contributors: bbqiguana 
-Donate link: http://www.bbqiguana.com/
-Tags: images, gallery
-Requires at least: 2.0
+Donate link: http://www.bbqiguana.com/donate/
+Tags: images, gallery, photobloggers
+Requires at least: 2.7
 Tested up to: 2.8.4
 Stable tag: trunk
 
@@ -17,8 +17,6 @@ Particularly useful for photobloggers who update using the mail2blog Flickr API.
 There are currently no configuration options.  You just activate it and let it do its thing.
 
 = Features I plan to add =
-* User-configurable custom-tag name
-* Ability to restrict operation to only specific hosts (ie, Flickr)
 * Integrate with Flickr API in order to allow always downloading the original image size regardless of which is linked
 
 
@@ -30,13 +28,20 @@ There are currently no configuration options.  You just activate it and let it d
 
 == Frequently Asked Questions ==
 
-If you have a question, send it at my web site.
+none
 
 == Screenshots ==
 
 none
 
 == Changelog ==
+
+= 0.2 =
+* Added options panel
+* User can apply plugin to all external images or choose only to apply to Flickr
+* User can choose to either mark images by custom tag, or to replace image source
+* Custom tag name is user-definable
+* Improved regular expression matching
 
 = 0.1 =
 * Initial version.
