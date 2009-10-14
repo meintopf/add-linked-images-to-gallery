@@ -3,7 +3,7 @@
 	/*
 	 Plugin Name: Add Linked Images To Gallery
 	 Plugin URI:  http://www.bbqiguana.com/tag/wordpress-plugins/
-	 Version: 0.3
+	 Version: 0.4
 	 Description: Examines the text of a post and makes local copies of all the images linked though IMG tags, adding them as gallery attachments on the post itself.
 	 Author: Randall Hunt
 	 Author URI: http://www.bbqiguana.com/
@@ -13,12 +13,23 @@
 		
 		if (wp_is_post_revision($post_id)) return;
 		
+		if ($c=get_option('externimg_catlist')) {
+			$catfound = false;
+			$catlist = get_the_category($post_id);
+			foreach ($catlist as $category) {
+				if (in_array($category->cat_ID, explode(',', $c)))
+					$catfound = true;
+			}
+			if (!$catfound) return;
+		}
+		$post = get_post($post_id);
+		$a = get_option('externimg_authlist');
+		if($a && !in_array($post->post_author, explode(',', $a))) return;
+		
 		$l = get_option('externimg_replacesrc');
 		$k = get_option('externimg_custtagname');
 		$processed = get_post_custom_values($k, $post_id);
-		
 		$replaced = false;
-		$post = get_post($post_id);
 		$content = $post->post_content;
 		$imgs = externimg_get_img_tags($post_id);
 		
@@ -214,6 +225,13 @@
 		return $body;
 	}
 	
+	function externimg_getauthors() {
+		global $wpdb;
+		$query = "SELECT $wpdb->users.* FROM $wpdb->users ORDER BY display_name;";
+		$authors = $wpdb->get_results($query);
+		return $authors;
+	}
+	
 	function externimg_menu () {
 		if ( function_exists('add_options_page') ) {
 			add_options_page('Linked IMGs to Gallery', 'Linked IMGs', 8, 'externimg', 'externimg_options');
@@ -227,6 +245,10 @@
 		register_setting('externimg', 'externimg_whichimgs');
 		register_setting('externimg', 'externimg_replacesrc');
 		register_setting('externimg', 'externimg_custtagname');
+		register_setting('externimg', 'externimg_cats');
+		register_setting('externimg', 'externimg_auths');
+		register_setting('externimg', 'externimg_catlist');
+		register_setting('externimg', 'externimg_authlist');
 	}
 	
 	function externimg_install () {
@@ -234,20 +256,34 @@
 		$whichimgs   = get_option('externimg_whichimgs');
 		$replacesrc  = get_option('externimg_replacesrc');
 		$custtagname = get_option('externimg_custtagname');
+		$catlist     = get_option('externimg_catlist');
+		$authlist    = get_option('externimg_authlist');
 		
 		if(!$whichimgs)   update_option('externimg_whichimgs',   'All');
 		if(!$replacesrc)  update_option('externimg_replacesrc',  'custtag');
 		if(!$custtagname) update_option('externimg_custtagname', 'externimg');
+		if(!$catlist)     update_option('externimg_catlist',     '');
+		if(!$authlist)    update_option('externimg_authlist',    '');
 	}
 	
 	function externimg_options () {
+		$_cats  = '';
+		$_auths = '';
 		echo '<div class="wrap">';
 		echo '<h2>Linked IMGs to Gallery Attachments</h2>';
 		if ( ($_POST['action']=='update') ) {
 			//check_admin_referer('externimg_update-action');
+			//			$_cats  = implode(',', $_POST['externimg_cats']);
+			//			$_auths = implode(',', $_POST['externimg_auths']);
 			update_option('externimg_whichimgs',   $_POST['externimg_whichimgs'] );
 			update_option('externimg_replacesrc',  $_POST['externimg_replacesrc'] );
 			update_option('externimg_custtagname', $_POST['externimg_custtagname'] );
+			if($_POST['externimg_catlist'])  update_option('externimg_catlist',  $_cats );
+			update_option('externimg_catlist',  ($_POST['externimg_catlist'] ) ? implode(',', $_POST['externimg_cats'] ) : '');
+			update_option('externimg_authlist', ($_POST['externimg_authlist']) ? implode(',', $_POST['externimg_auths']) : '');
+			//			if($_POST['externimg_authlist']) update_option('externimg_authlist', $_auths);
+			//			update_option('externimg_catlist',     $_POST['externimg_catlist'] );
+			//			update_option('externimg_authlist',    $_POST['externimg_authlist'] );
 			echo '<div id="message" class="updated fade" style="background-color:rgb(255,251,204);"><p>Settings updated.</p></div>';
 		}
 		echo '<big>Options</big>';
@@ -265,6 +301,31 @@
 		echo '<input type="text" size="20" name="externimg_custtagname" value="' . get_option('externimg_custtagname') . '" /><br/>';
 		echo '<p>Replacing the SRC attribute will convert the external IMG link to a local link, pointed at the local copy downloaded by this plugin. If the SRC attribute is not replaced, the plugin needs to mark the IMG as having been processed somehow, so this is done by tracking processed images in custom_tag values.  You can change the name of the custom tag.</p></td></tr>';
 		//	echo '<tr valign="top"><th scope="row">This site name:</th><td>' . get_option('siteurl') . '</td></tr>';
+		
+		echo '<tr align="top"><th scope="row"><strong>Apply to these categories:</strong></th>';
+		echo '<td><label for="myradio5"><input type="radio" id="myradio5" name="externimg_catlist" value="" ' . (get_option('externimg_catlist')==''?'checked="checked"':'') . ' /> All categories</label><br/>';
+		echo '<label for="myradio6"><input type="radio" id="myradio6" name="externimg_catlist" value="Y" ' . (get_option('externimg_catlist')!=''?'checked="checked"':'') . ' /> Selected categories</label><br/>';
+		
+		$_cats = explode(',', get_option('externimg_catlist'));
+		$chcount = 0;
+		$cats = get_categories();
+		foreach ($cats as $cat) {
+			$chcount++;
+			echo '<label for="mycheck'.$chcount.'"><input type="checkbox" id="mycheck'.$chcount.'" name="externimg_cats[]" value="' . $cat->cat_ID . '" '.(in_array($cat->cat_ID, $_cats)?'checked="checked"':'').' /> ' . $cat->cat_name . '</label><br/>';
+		}
+		echo '</td></tr>';
+		echo '<tr align="top"><th scope="row"><strong>Apply to these authors:</strong></th>';
+		echo '<td><label for="myradio7"><input type="radio" id="myradio7" name="externimg_authlist" value="" ' . (get_option('externimg_authlist')==''?'checked="checked"':'') . ' /> All authors</label><br/>';
+		echo '<label for="myradio8"><input type="radio" id="myradio8" name="externimg_authlist" value="Y" ' . (get_option('externimg_authlist')!=''?'checked="checked"':'') . ' /> Selected authors</label><br/>';
+		
+		$_auths = explode(',', get_option('externimg_authlist'));
+		$auths = externimg_getauthors();
+		foreach ($auths as $auth) {
+			$chcount++;
+			echo '<label for="mycheck'.$chcount.'"><input type="checkbox" id="mycheck'.$chcount.'" name="externimg_auths[]" value="' . $auth->ID . '" '.(in_array($auth->ID, $_auths)?'checked="checked"':'').'/> ' . $auth->display_name . '</label><br/>';
+		}
+		echo '</td></tr>';
+		
 		echo '</tbody></table>';
 		echo '<div class="submit">';
 		//echo '<input type="hidden" name="externimg_update" value="action" />';
