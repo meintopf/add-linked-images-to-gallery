@@ -4,7 +4,7 @@ Donate link: http://www.bbqiguana.com/donate/
 Tags: images, gallery, photobloggers
 Requires at least: 2.7
 Tested up to: 2.8.4
-Stable tag: trunk
+Stable tag: 0.3
 
 Makes local copies of all the linked images in a post, adding them as gallery attachments.
 
@@ -12,10 +12,15 @@ Makes local copies of all the linked images in a post, adding them as gallery at
 
 Create local copies of external images in the src attribute of img tags.  This plugin extracts a list of IMG tags in the post, saves copies of those images locally as gallery attachments on the post.
 
+= Features =
+* Finds all external images linked in the SRC attribute of IMG tags and makes local copies of those images
+* Allows the SRC to be updated to point to those local copies
+* Can be applied to posts in all categories, or only those selected
+* Can be applied to all authors, or only selected authors
+
 Administrator has the option to replace the external src with the url of the local copy. Another option allows the plugin to be applied to all external images, or only to those on Flickr.
 
 This plugin is particularly useful for photobloggers, especially those who update using the mail2blog Flickr API.   The plugin will saved the linked image file from Flickr locally.
-
 
 = Planned features: =
 * Add internationalization support
