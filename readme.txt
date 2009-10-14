@@ -10,11 +10,12 @@ Makes local copies of all the linked images in a post, adding them as gallery at
 
 == Description ==
 
-Extracts a list of IMG tags in the post, and saves copies of those images locally as gallery attachments on the post.
+Create local copies of external images in the src attribute of img tags.  This plugin extracts a list of IMG tags in the post, saves copies of those images locally as gallery attachments on the post.
 
-Particularly useful for photobloggers who update using the mail2blog Flickr API.   The plugin will saved the linked image file from Flickr locally.
+Administrator has the option to replace the external src with the url of the local copy. Another option allows the plugin to be applied to all external images, or only to those on Flickr.
 
-There are currently no configuration options.  You just activate it and let it do its thing.
+This plugin is particularly useful for photobloggers, especially those who update using the mail2blog Flickr API.   The plugin will saved the linked image file from Flickr locally.
+
 
 = Planned features: =
 * Add internationalization support
