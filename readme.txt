@@ -3,7 +3,7 @@ Contributors: bbqiguana
 Donate link: http://www.bbqiguana.com/donate/
 Tags: images, gallery, photobloggers
 Requires at least: 2.7
-Tested up to: 2.8.5
+Tested up to: 2.8.6
 Stable tag: 0.4
 
 Makes local copies of all the linked images in a post, adding them as gallery attachments.
