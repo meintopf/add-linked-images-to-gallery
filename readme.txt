@@ -4,7 +4,7 @@ Donate link: http://www.bbqiguana.com/donate/
 Tags: images, gallery, photobloggers
 Requires at least: 2.7
 Tested up to: 2.8.6
-Stable tag: 0.4
+Stable tag: 0.5
 
 Makes local copies of all the linked images in a post, adding them as gallery attachments.
 
@@ -42,6 +42,9 @@ none
 none
 
 == Changelog ==
+
+= 0.5 =
+* Fixes a bug that cause all img tags to be rewritten as the last matched image.
 
 = 0.4 =
 * Option added to option panel allowing the plugin to run only on posts in specific categories
