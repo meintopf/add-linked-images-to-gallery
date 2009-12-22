@@ -1,10 +1,10 @@
 === Add Linked Images To Gallery ===
 Contributors: bbqiguana 
 Donate link: http://www.bbqiguana.com/donate/
-Tags: images, gallery, photobloggers
+Tags: images, gallery, photobloggers, attachments, photo, links, external, photographers, Flickr
 Requires at least: 2.7
 Tested up to: 2.9
-Stable tag: 0.6
+Stable tag: 0.7
 
 Makes local copies of all the linked images in a post, adding them as gallery attachments.
 
@@ -43,9 +43,12 @@ none
 
 == Changelog ==
 
+= 0.7 =
+* Fixes a syntax error in creating the new attachment
+
 = 0.6 =
-* Suppresses safe_mode warnings from CURL.
-* Adds compatibility with WordPress 2.9.
+* Suppresses safe_mode warnings from CURL
+* Adds support for WordPress 2.9
 
 = 0.5 =
 * Fixes a bug that cause all img tags to be rewritten as the last matched image.
