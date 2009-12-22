@@ -3,8 +3,8 @@ Contributors: bbqiguana
 Donate link: http://www.bbqiguana.com/donate/
 Tags: images, gallery, photobloggers
 Requires at least: 2.7
-Tested up to: 2.8.6
-Stable tag: 0.5
+Tested up to: 2.9
+Stable tag: 0.6
 
 Makes local copies of all the linked images in a post, adding them as gallery attachments.
 
@@ -42,6 +42,10 @@ none
 none
 
 == Changelog ==
+
+= 0.6 =
+* Suppresses safe_mode warnings from CURL.
+* Adds compatibility with WordPress 2.9.
 
 = 0.5 =
 * Fixes a bug that cause all img tags to be rewritten as the last matched image.
