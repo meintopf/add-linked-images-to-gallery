@@ -35,7 +35,24 @@ This plugin is particularly useful for photobloggers, especially those who updat
 
 == Frequently Asked Questions ==
 
-none
+= How does this plugin work? =
+
+The plugin examines the HTML source of your post when you save it, inspecting each IMG tag, and processing them according to the options you have selected.  
+
+Under the default settings, it will find IMG tags with links to images on other web sites and copy those images to your web site, updating the IMG src to point to your copy.
+
+= Is that illegal or unethical? =
+
+I built this plugin for the purpose on one-click publishing of my photoblog. I publish my own photos (to which I have all rights) to Flickr, and then my plugin copies the file from Flickr's server to my own web server.
+
+Yes, there are numerous was that this plugin could be used unethically, but there are just as many perfectly reasonable uses for it.  I leave it to you to make the right decision.
+
+= How can I know that it is working? =
+
+* Create a new post, and add a link to a test image (such as one on your Flickr account).
+* Now click the "Save Draft" button.
+* If your editor is in HTML mode, you will see that the SRC attribute has changed.
+* If not, you can click on the Add Image icon and you will see a new image has been added to the Gallery for this post.
 
 == Screenshots ==
 
