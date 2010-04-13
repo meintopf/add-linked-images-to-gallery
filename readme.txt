@@ -4,7 +4,7 @@ Donate link: http://www.bbqiguana.com/donate/
 Tags: images, gallery, photobloggers, attachments, photo, links, external, photographers, Flickr
 Requires at least: 2.7
 Tested up to: 2.9.1
-Stable tag: 0.9
+Stable tag: 1.0
 
 Makes local copies of all the linked images in a post, adding them as gallery attachments.
 
@@ -59,6 +59,9 @@ Yes, there are numerous was that this plugin could be used unethically, but ther
 none
 
 == Changelog ==
+
+= 1.0 =
+* Finally found the "WP_Error on line 48" issue, and I'm ready to call this a 1.0
 
 = 0.9 =
 * Replaced externimg_loadimage() function with a call to WordPress's media_handle_sideload()
