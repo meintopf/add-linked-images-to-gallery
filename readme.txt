@@ -4,7 +4,7 @@ Donate link: http://www.bbqiguana.com/donate/
 Tags: images, gallery, photobloggers, attachments, photo, links, external, photographers, Flickr, save, download
 Requires at least: 2.7
 Tested up to: 3.0.1
-Stable tag: 1.0
+Stable tag: 1.1
 
 Makes local copies of all the linked images in a post, adding them as gallery attachments.
 
@@ -59,6 +59,9 @@ Yes, there are numerous was that this plugin could be used unethically, but ther
 none
 
 == Changelog ==
+
+= 1.1 =
+* Fixed the dowload loop on autosaved drafts
 
 = 1.0.1 = 
 * Added require_once for necessary WP library functions
