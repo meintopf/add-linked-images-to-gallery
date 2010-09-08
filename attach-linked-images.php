@@ -2,14 +2,19 @@
 
 /*
  Plugin Name: Add Linked Images To Gallery
- Plugin URI:  http://www.bbqiguana.com/tag/wordpress-plugins/
- Version: 0.8
+ Plugin URI:  http://www.bbqiguana.com/wordpress-plugins/add-linked-images-to-gallery/
+ Version: 1.1
  Description: Examines the text of a post and makes local copies of all the images linked though IMG tags, adding them as gallery attachments on the post itself.
- Author: Randall Hunt
+ Author: Randy Hunt
  Author URI: http://www.bbqiguana.com/
  */
 
+require_once(ABSPATH . 'wp-admin/includes/file.php');
+require_once(ABSPATH . 'wp-admin/includes/media.php');
+
 function externimg_find_imgs ($post_id) {
+
+	if (defined('DOING_AUTOSAVE')) return;
 	
 	if (wp_is_post_revision($post_id)) return;
 	
@@ -40,13 +45,11 @@ function externimg_find_imgs ($post_id) {
 			$pathname = $parseurl['path'];
 			$filename = substr(strrchr($pathname, '/'), 1);
 			if (preg_match ('/(\.php|\.aspx?)$/', $filename) ) $filename .= '.jpg';
-			if ($file = externimg_loadimage($imgs[$i])) {
-				//$filename = substr(strrchr($imgs[$i], '/'), 1);
-				$imgpath = externimg_savefile($file, $filename, $post_id);
+			$imgpath = externimg_sideload($imgs[$i], $filename, $post_id);
+			if (!is_wp_error($imgpath)) {
 				if ($l=='custtag') {
 					add_post_meta($post_id, $k, $imgs[$i], false);
 				} else {
-					//$content = str_replace($imgs[$i], $imgpath, $content);
 					$trans = preg_quote($imgs[$i], "/");
 					$content = preg_replace('/(<img[^>]* src=[\'"]?)('.$trans.')/', '$1'.$imgpath, $content);
 					$replaced = true;
@@ -61,6 +64,24 @@ function externimg_find_imgs ($post_id) {
 		$upd['post_content'] = $content;
 		wp_update_post($upd);
 	}
+}
+
+function externimg_sideload ($file, $url, $post_id) {
+	if(!empty($file)){
+		$file_array['name'] = basename($file);
+		$file_array['tmp_name'] = download_url($file);
+		$desc = @$desc;
+
+		$id = media_handle_sideload($file_array, $post_id, $desc);
+		$src = $id;
+
+		if(is_wp_error($id)) {
+			@unlink($file_array['tmp_name']);
+			return $id;
+		}
+	}
+	if (!empty($src)) return $src;
+	else return false;
 }
 
 function externimg_get_img_tags ($post_id) {
