@@ -60,8 +60,11 @@ none
 
 == Changelog ==
 
+= 1.2 =
+* Fixed a condition where images without a file extension were not processed
+
 = 1.1 =
-* Fixed the dowload loop on autosaved drafts
+* Added a test for DOING_AUTOSAVE to prevent a dowload loop on autosaved drafts
 
 = 1.0.1 = 
 * Added require_once for necessary WP library functions

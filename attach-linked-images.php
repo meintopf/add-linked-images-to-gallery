@@ -14,7 +14,7 @@ require_once(ABSPATH . 'wp-admin/includes/media.php');
 
 function externimg_find_imgs ($post_id) {
 
-	if (defined('DOING_AUTOSAVE')) return;
+	if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) return;
 	
 	if (wp_is_post_revision($post_id)) return;
 	
@@ -66,11 +66,36 @@ function externimg_find_imgs ($post_id) {
 	}
 }
 
+function externimg_getext ($file) {
+	$mime = mime_content_type($file);
+	switch($mime) {
+		case 'image/jpg':
+		case 'image/jpeg':
+			return '.jpg';
+			break;
+		case 'image/gif':
+			return '.gif';
+			break;
+		case 'image/png':
+			return '.png';
+			break;
+	}
+	return '';
+}
+
 function externimg_sideload ($file, $url, $post_id) {
 	if(!empty($file)){
-		$file_array['name'] = basename($file);
 		$file_array['tmp_name'] = download_url($file);
+		$file_array['name'] = basename($file_array['tmp_name']);
 		$desc = @$desc;
+
+		$pathparts = pathinfo($file_array['tmp_name']);
+		if (''==$pathparts['extension']) {
+			$ext = externimg_getext($file_array['tmp_name']);
+			rename($file_array['tmp_name'], $file_array['tmp_name'] . $ext);
+			$file_array['name']     .= $ext;
+			$file_array['tmp_name'] .= $ext;
+		}
 
 		$id = media_handle_sideload($file_array, $post_id, $desc);
 		$src = $id;
