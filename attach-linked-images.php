@@ -3,7 +3,7 @@
 /*
  Plugin Name: Add Linked Images To Gallery
  Plugin URI:  http://www.bbqiguana.com/wordpress-plugins/add-linked-images-to-gallery/
- Version: 1.2.1
+ Version: 1.3
  Description: Examines the text of a post and makes local copies of all the images linked though IMG tags, adding them as gallery attachments on the post itself.
  Author: Randy Hunt
  Author URI: http://www.bbqiguana.com/
@@ -11,6 +11,8 @@
 
 require_once(ABSPATH . 'wp-admin/includes/file.php');
 require_once(ABSPATH . 'wp-admin/includes/media.php');
+
+$externimg_count = 0;
 
 function externimg_find_imgs ($post_id) {
 
@@ -37,6 +39,7 @@ function externimg_find_imgs ($post_id) {
 	$replaced = false;
 	$content = $post->post_content;
 	$imgs = externimg_get_img_tags($post_id);
+	global $externimg_count;
 	
 	for($i=0; $i<count($imgs); $i++) {
 		if (!$processed || !in_array($imgs[$i], $processed)) {
@@ -55,6 +58,7 @@ function externimg_find_imgs ($post_id) {
 					$replaced = true;
 				}
 				$processed[] = $imgs[i];
+				$externimg_count++;
 			}
 		}
 	}
@@ -86,8 +90,10 @@ function externimg_getext ($file) {
 function externimg_sideload ($file, $url, $post_id) {
 	if(!empty($file)){
 		$file_array['tmp_name'] = download_url($file);
+		if(is_wp_error($file_array['tmp_name'])) return;
 		$file_array['name'] = basename($file);
-		$desc = @$desc;
+		//$desc = @$desc;
+		$desc = externimg_getext($file);
 
 		$pathparts = pathinfo($file_array['tmp_name']);
 		if (''==$pathparts['extension']) {
@@ -272,6 +278,23 @@ function externimg_loadimage ($url) {
 	return $body;
 }
 
+function externimg_backcatalog () {
+	global $externimg_count;
+	$count = 0;
+	$pp = get_posts( array( 'numberposts'=>-1 ) );
+	foreach ($pp as $p) {
+		try {
+			//echo '<p>' . $p->ID . ': ' . $p->title . '</p>';
+			echo '<p>[' . $p->ID . '] ' . $p->post_title . ': ';
+			externimg_find_imgs($p->ID);
+			echo '<em>' . $externimg_count . ' images processed.</em></p>';
+		} catch (Exception $e) {
+			echo '<em>an error occurred</em>.</p>';
+		}
+		$count += $externimg_count;
+	}
+}
+
 function externimg_getauthors() {
 	global $wpdb;
 	$query = "SELECT $wpdb->users.* FROM $wpdb->users ORDER BY display_name;";
@@ -318,7 +341,13 @@ function externimg_options () {
 	$_auths = '';
 	echo '<div class="wrap">';
 	echo '<h2>Linked IMGs to Gallery Attachments</h2>';
-	if ( ($_POST['action']=='update') ) {
+
+	if ($_POST['action']=='backcatalog') {
+		externimg_backcatalog();
+		echo '<div id="message" class="updated fade" style="background-color:rgb(255,251,204);"><p>Finished processing past posts!</p></div>';
+	}
+
+	if ($_POST['action']=='update') {
 		//check_admin_referer('externimg_update-action');
 		//			$_cats  = implode(',', $_POST['externimg_cats']);
 		//			$_auths = implode(',', $_POST['externimg_auths']);
@@ -379,6 +408,20 @@ function externimg_options () {
 	echo '<input type="submit" name="submit" class="button-primary" value="' . __('Save Changes') . '" />';
 	echo '</div>';
 	echo '</form>';
+
+	echo '<form name="externimg-backcatalog" method="post" action="">';
+	echo '<div class="wrap">';
+	echo '<big>Process all posts</big>';
+	echo '<p>Use this function to apply the plugin to all previous posts. The settings specified above will still be respected.</p>';
+	echo '<p><em>Please note that this can take a long time for sites with a lot of posts.</em></p>';
+	echo '<div class="submit">';
+	echo '<input type="hidden" name="action" value="backcatalog">';
+	echo '<input type="submit" class="button-primary" value="' . __('Process') . '" />';
+	echo '</div>';
+	echo '<p>&nbsp;</p>';
+	echo '</div>';
+	echo '</form>';
+
 	echo '<div class="wrap">';
 	echo '<big>Donate</big>';
 	echo '<p>If you like this plugin consider donating a small amount to the author using PayPal to support further plugin development.</p>';
