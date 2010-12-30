@@ -3,7 +3,7 @@
 /*
  Plugin Name: Add Linked Images To Gallery
  Plugin URI:  http://www.bbqiguana.com/wordpress-plugins/add-linked-images-to-gallery/
- Version: 1.3
+ Version: 1.3.1
  Description: Examines the text of a post and makes local copies of all the images linked though IMG tags, adding them as gallery attachments on the post itself.
  Author: Randy Hunt
  Author URI: http://www.bbqiguana.com/
@@ -71,7 +71,9 @@ function externimg_find_imgs ($post_id) {
 }
 
 function externimg_getext ($file) {
-	$mime = mime_content_type($file);
+	if function_exists('mime_content_type')
+		$mime = mime_content_type($file);
+	else return '';
 	switch($mime) {
 		case 'image/jpg':
 		case 'image/jpeg':
