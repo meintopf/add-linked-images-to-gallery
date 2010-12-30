@@ -62,6 +62,7 @@ none
 
 = 1.3 =
 * Added a function to process all posts in a database.
+* Mime_type is parsed on incoming files
 
 = 1.2 =
 * Fixed a condition where images without a file extension were not processed
