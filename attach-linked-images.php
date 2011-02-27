@@ -3,7 +3,7 @@
 /*
  Plugin Name: Add Linked Images To Gallery
  Plugin URI:  http://www.bbqiguana.com/wordpress-plugins/add-linked-images-to-gallery/
- Version: 1.3.2
+ Version: 1.4
  Description: Examines the text of a post and makes local copies of all the images linked though IMG tags, adding them as gallery attachments on the post itself.
  Author: Randy Hunt
  Author URI: http://www.bbqiguana.com/
@@ -48,7 +48,8 @@ function externimg_find_imgs ($post_id) {
 			$pathname = $parseurl['path'];
 			$filename = substr(strrchr($pathname, '/'), 1);
 			if (preg_match ('/(\.php|\.aspx?)$/', $filename) ) $filename .= '.jpg';
-			$imgpath = externimg_sideload($imgs[$i], $filename, $post_id);
+			$imgid   = externimg_sideload($imgs[$i], $filename, $post_id);
+			$imgpath = wp_get_attachment_url($imgid);
 			if (!is_wp_error($imgpath)) {
 				if ($l=='custtag') {
 					add_post_meta($post_id, $k, $imgs[$i], false);
@@ -332,7 +333,7 @@ function externimg_install () {
 	$authlist    = get_option('externimg_authlist');
 	
 	if(!$whichimgs)   update_option('externimg_whichimgs',   'All');
-	if(!$replacesrc)  update_option('externimg_replacesrc',  'custtag');
+	if(!$replacesrc)  update_option('externimg_replacesrc',  'replace');
 	if(!$custtagname) update_option('externimg_custtagname', 'externimg');
 	if(!$catlist)     update_option('externimg_catlist',     '');
 	if(!$authlist)    update_option('externimg_authlist',    '');
