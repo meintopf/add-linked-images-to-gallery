@@ -305,6 +305,11 @@ function externimg_getauthors() {
 	return $authors;
 }
 
+function externimg_getposttypes() {
+	$posttypes = get_post_types();
+	return $posttypes;
+}
+
 function externimg_menu () {
 	if ( function_exists('add_options_page') ) {
 		add_options_page('Linked IMGs to Gallery', 'Linked IMGs', 8, 'externimg', 'externimg_options');
@@ -342,6 +347,7 @@ function externimg_install () {
 function externimg_options () {
 	$_cats  = '';
 	$_auths = '';
+	$_types = '';
 	echo '<div class="wrap">';
 	echo '<h2>Linked IMGs to Gallery Attachments</h2>';
 
@@ -360,6 +366,7 @@ function externimg_options () {
 		if($_POST['externimg_catlist'])  update_option('externimg_catlist',  $_cats );
 		update_option('externimg_catlist',  ($_POST['externimg_catlist'] ) ? implode(',', $_POST['externimg_cats'] ) : '');
 		update_option('externimg_authlist', ($_POST['externimg_authlist']) ? implode(',', $_POST['externimg_auths']) : '');
+		update_option('externimg_typelist', ($_POST['externimg_typelist']) ? implode(',', $_POST['externimg_types']) : '');
 		//			if($_POST['externimg_authlist']) update_option('externimg_authlist', $_auths);
 		//			update_option('externimg_catlist',     $_POST['externimg_catlist'] );
 		//			update_option('externimg_authlist',    $_POST['externimg_authlist'] );
@@ -402,6 +409,17 @@ function externimg_options () {
 	foreach ($auths as $auth) {
 		$chcount++;
 		echo '<label for="mycheck'.$chcount.'"><input type="checkbox" id="mycheck'.$chcount.'" name="externimg_auths[]" value="' . $auth->ID . '" '.(in_array($auth->ID, $_auths)?'checked="checked"':'').'/> ' . $auth->display_name . '</label><br/>';
+	}
+	echo '</td></tr>';
+	echo '<tr align="top"><th scope="row"><strong>Apply to these post types:</strong></th>';
+	echo '<td><label for="myradio9"><input type="radio" id="myradio9" name="externimg_typelist" value="" ' . (get_option('externimg_typelist')==''?'checked="checked"':'') . ' /> All post types</label><br/>';
+	echo '<label for="myradio10"><input type="radio" id="myradio10" name="externimg_typelist" value="Y" ' . (get_option('externimg_typelist')!=''?'checked="checked"':'') . ' /> Selected post types</label><br/>';
+	
+	$_types = explode(',', get_option('externimg_typelist'));
+	$types = externimg_getposttypes();
+	foreach ($types as $type) {
+		$chcount++;
+		echo '<label for="mycheck'.$chcount.'"><input type="checkbox" id="mycheck'.$chcount.'" name="externimg_types[]" value="' . $type . '" '.(in_array($type, $_types)?'checked="checked"':'').'/> ' . $type . '</label><br/>';
 	}
 	echo '</td></tr>';
 	
