@@ -284,7 +284,11 @@ function externimg_loadimage ($url) {
 function externimg_backcatalog () {
 	global $externimg_count;
 	$count = 0;
-	$pp = get_posts( array( 'numberposts'=>-1 ) );
+	$pp = get_posts( array(
+		'numberposts'	=> -1,
+		'orderby'			=> 'post_date',
+    'order'				=> 'ASC', 
+    ) );
 	foreach ($pp as $p) {
 		try {
 			//echo '<p>' . $p->ID . ': ' . $p->title . '</p>';
