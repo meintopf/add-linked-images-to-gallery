@@ -319,7 +319,7 @@ function externimg_getposttypes() {
 
 function externimg_menu () {
 	if ( function_exists('add_options_page') ) {
-		add_options_page('Linked IMGs to Gallery', 'Linked IMGs', 8, 'externimg', 'externimg_options');
+		add_options_page('Linked IMGs to Gallery', 'Linked IMGs', 'activate_plugins', 'externimg', 'externimg_options');
 	}
 }
 
