@@ -1,10 +1,10 @@
 === Add Linked Images To Gallery ===
-Contributors: bbqiguana 
+Contributors: tiefpunkt, bbqiguana 
 Donate link: http://www.bbqiguana.com/donate/
 Tags: images, gallery, photobloggers, attachments, photo, links, external, photographers, Flickr, save, download
 Requires at least: 2.7
-Tested up to: 3.3.1
-Stable tag: 1.4
+Tested up to: 3.5.1
+Stable tag: 1.5
 
 Makes local copies of all the linked images in a post, adding them as gallery attachments.
 
@@ -59,6 +59,11 @@ Yes, there are numerous was that this plugin could be used unethically, but ther
 none
 
 == Changelog ==
+
+= 1.5 =
+* Import images in the order of the posts they came from
+* Choose, for which post types you want to import files
+* Fixed a bug that would remove the src of an image if it could not be downloaded
 
 = 1.4 = 
 * Updated to fix a bug introduced with WordPress 3.1
