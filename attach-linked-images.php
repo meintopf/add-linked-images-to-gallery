@@ -33,6 +33,9 @@ function externimg_find_imgs ($post_id) {
 	$a = get_option('externimg_authlist');
 	if($a && !in_array($post->post_author, explode(',', $a))) return;
 	
+	$typelist = get_option('externimg_typelist');
+	if($typelist && !in_array($post->post_type, explode(',', $typelist))) return;
+	
 	$l = get_option('externimg_replacesrc');
 	$k = get_option('externimg_custtagname');
 	$processed = get_post_custom_values($k, $post_id);
@@ -331,6 +334,7 @@ function externimg_init () {
 	register_setting('externimg', 'externimg_auths');
 	register_setting('externimg', 'externimg_catlist');
 	register_setting('externimg', 'externimg_authlist');
+	register_setting('externimg', 'externimg_typelist');
 }
 
 function externimg_install () {
@@ -340,12 +344,14 @@ function externimg_install () {
 	$custtagname = get_option('externimg_custtagname');
 	$catlist     = get_option('externimg_catlist');
 	$authlist    = get_option('externimg_authlist');
+	$typelist    = get_option('externimg_typelist');
 	
 	if(!$whichimgs)   update_option('externimg_whichimgs',   'All');
 	if(!$replacesrc)  update_option('externimg_replacesrc',  'replace');
 	if(!$custtagname) update_option('externimg_custtagname', 'externimg');
 	if(!$catlist)     update_option('externimg_catlist',     '');
 	if(!$authlist)    update_option('externimg_authlist',    '');
+	if(!$typelist)    update_option('externimg_typelist',    'post');
 }
 
 function externimg_options () {
