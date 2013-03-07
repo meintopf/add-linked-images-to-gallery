@@ -52,17 +52,19 @@ function externimg_find_imgs ($post_id) {
 			$filename = substr(strrchr($pathname, '/'), 1);
 			if (preg_match ('/(\.php|\.aspx?)$/', $filename) ) $filename .= '.jpg';
 			$imgid   = externimg_sideload($imgs[$i], $filename, $post_id);
-			$imgpath = wp_get_attachment_url($imgid);
-			if (!is_wp_error($imgpath)) {
-				if ($l=='custtag') {
-					add_post_meta($post_id, $k, $imgs[$i], false);
-				} else {
-					$trans = preg_quote($imgs[$i], "/");
-					$content = preg_replace('/(<img[^>]* src=[\'"]?)('.$trans.')/', '$1'.$imgpath, $content);
-					$replaced = true;
+			if ($imgid != false) {
+				$imgpath = wp_get_attachment_url($imgid);
+				if (!is_wp_error($imgpath)) {
+					if ($l=='custtag') {
+						add_post_meta($post_id, $k, $imgs[$i], false);
+					} else {
+						$trans = preg_quote($imgs[$i], "/");
+						$content = preg_replace('/(<img[^>]* src=[\'"]?)('.$trans.')/', '$1'.$imgpath, $content);
+						$replaced = true;
+					}
+					$processed[] = $imgs[$i];
+					$externimg_count++;
 				}
-				$processed[] = $imgs[i];
-				$externimg_count++;
 			}
 		}
 	}
@@ -96,7 +98,7 @@ function externimg_getext ($file) {
 function externimg_sideload ($file, $url, $post_id) {
 	if(!empty($file)){
 		$file_array['tmp_name'] = download_url($file);
-		if(is_wp_error($file_array['tmp_name'])) return;
+		if(is_wp_error($file_array['tmp_name'])) return false;
 		$file_array['name'] = basename($file);
 		//$desc = @$desc;
 		$desc = externimg_getext($file);
